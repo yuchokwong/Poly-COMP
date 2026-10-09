@@ -1,0 +1,15 @@
+# Runtime dependencies.
+# NOTE: In Docker the CPU/GPU build of torch is installed first (see Dockerfile),
+# so this file only needs the remaining packages. For a native install the torch
+# line below provides a default wheel.
+torch>=2.2
+open_clip_torch>=2.24.0
+faiss-cpu>=1.8.0
+numpy>=1.26
+pillow>=10.2
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+pyyaml>=6.0
+requests>=2.31
+tqdm>=4.66

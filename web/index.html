@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Text-to-Image Retrieval</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" title="Home">
+      <h1>Beyond Vision</h1>
+    </a>
+    <div class="top-actions">
+      <div class="stats" id="stats"></div>
+      <button type="button" class="chip" id="settings-btn">Settings</button>
+    </div>
+  </header>
+
+  <main>
+    <form class="searchbar" id="search-form" autocomplete="off">
+      <input
+        id="query"
+        type="text"
+        placeholder="Describe an image, e.g. 'a dog running on a beach at sunset'"
+        aria-label="Search query"
+      />
+      <button type="submit" id="search-btn">Search</button>
+    </form>
+
+    <div class="controls">
+      <label class="control">
+        <span>Results</span>
+        <input id="topk" type="range" min="1" max="50" value="12" />
+        <output id="topk-value">12</output>
+      </label>
+      <label class="control checkbox">
+        <input id="hybrid" type="checkbox" checked />
+        <span>Hybrid (CLIP + keyword)</span>
+      </label>
+      <label class="control">
+        <span>Split</span>
+        <select id="split">
+          <option value="">all</option>
+          <option value="val">val</option>
+          <option value="train">train</option>
+          <option value="local">local</option>
+        </select>
+      </label>
+      <label class="control">
+        <span>Min score</span>
+        <input id="minscore" type="number" step="0.01" min="0" placeholder="0" />
+      </label>
+      <button type="button" class="chip" id="share-btn">Copy link</button>
+    </div>
+
+    <section id="status" class="status hidden"></section>
+
+    <section class="gallery-head hidden" id="gallery-head">
+      <span id="result-meta"></span>
+    </section>
+
+    <section id="results" class="grid"></section>
+
+    <div class="load-more hidden" id="load-more">
+      <button type="button" class="chip" id="load-more-btn">Load more</button>
+    </div>
+  </main>
+
+  <div class="lightbox hidden" id="lightbox">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
+    <div class="lightbox-body">
+      <img id="lightbox-img" alt="" />
+      <div class="lightbox-info" id="lightbox-info"></div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="settings-modal">
+    <div class="modal-body">
+      <div class="modal-head">
+        <h2>Settings</h2>
+        <button class="modal-close" id="settings-close" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-hint">
+        Search settings apply immediately and are saved to
+        <code>data/settings.json</code>. Build-time settings require a rebuild.
+      </p>
+      <div id="settings-fields"></div>
+      <div class="modal-actions">
+        <button type="button" class="chip" id="settings-save">Save</button>
+        <button type="button" class="chip" id="settings-reload">Reload</button>
+        <span class="settings-msg" id="settings-msg"></span>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>COMP5523 Group Project · General-domain text-to-image retrieval</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

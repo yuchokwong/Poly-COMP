@@ -1,0 +1,81 @@
+app:
+  title: "Text-to-Image Retrieval"
+  host: 0.0.0.0
+  port: 8000
+  default_top_k: 12
+  max_top_k: 100
+  cors_origins:
+    - "*"
+
+paths:
+  data_dir: data
+  images_subdir: images
+  db_name: gallery.db
+  index_name: index.faiss
+  ids_name: index_ids.npy
+  manifest_name: manifest.jsonl
+  eval_name: eval_queries.json
+  report_name: eval_report.json
+  web_dir: web
+  cache_dir: .cache
+
+model:
+  name: ViT-B-32
+  pretrained: laion2b_s34b_b79k
+  device: auto
+  backend: torch    # torch | onnx  (onnx = faster CPU; run `tsr export-onnx`)
+  onnx_dir: null    # where exported ONNX lives (default: <cache_dir>/onnx)
+  threads: 0        # onnxruntime intra-op threads (0 = auto)
+  batch_size: 64
+  normalize: true
+  cache_dir: .cache/open_clip
+
+index:
+  type: auto        # auto | flat | ivf | pq | hnsw (auto: flat<=300k, ivf<=1M, else pq)
+  auto_flat_max: 300000
+  auto_ivf_max: 1000000
+  nlist: 1024
+  nprobe: 32
+  m: 32
+  ef_search: 64
+
+gallery:
+  source: coco      # coco | coco_hf | local
+  hf_repo: undefined443/coco-karpathy-wds   # used by source=coco_hf (fast mirror)
+  cache_tars: true  # cache downloaded webdataset tars for instant re-runs
+  dedup: sha1       # sha1 (exact) | phash (near-duplicate)
+  pregenerate_thumbnails: false   # build thumbnails up front (see `tsr thumbnails`)
+  local_root: data/local_images
+  max_images: 10000
+  image_max_side: 256   # CLIP input is 224px; 256 keeps disk/CPU low
+  image_quality: 85
+  download_workers: 8
+  download_timeout: 30
+  download_retries: 3
+  seed: 42
+
+search:
+  prompt_templates:
+    - "{}"
+    - "a photo of {}"
+    - "a picture of {}"
+    - "a photograph of {}"
+  use_prompt_ensemble: false
+  hybrid: true
+  hybrid_alpha: 0.7
+  rerank: none      # none | caption | cross-encoder
+  rerank_top_n: 60
+  rerank_alpha: 0.5
+  rerank_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+  translate: false  # translate CJK queries to English before encoding
+  translator_model: Helsinki-NLP/opus-mt-zh-en
+
+eval:
+  top_k:
+    - 1
+    - 5
+    - 10
+    - 20
+  num_queries: 200
+  mode: caption     # caption | category
+  seed: 42

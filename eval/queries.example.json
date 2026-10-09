@@ -1,0 +1,11 @@
+[
+  {
+    "query": "a dog running on a beach at sunset",
+    "relevant": ["coco_val_000000397133"],
+    "metadata": {"notes": "example - replace with your own labelled queries"}
+  },
+  {
+    "query": "a plate of pasta with tomatoes and basil",
+    "relevant": ["coco_val_000000043356"]
+  }
+]

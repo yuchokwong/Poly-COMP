@@ -1,0 +1,23 @@
+# Preset for ~100k images on a modest machine (small GPU or CPU).
+#
+# Serving 100k is cheap: the flat index is ~200MB RAM and queries stay well
+# under 100ms. Building (downloading + embedding) is the slow part - if you can,
+# build once on a stronger machine and copy the ./data directory to the target.
+model:
+  name: ViT-B-32
+  device: auto
+  batch_size: 8
+
+gallery:
+  max_images: 100000
+  image_max_side: 256
+  image_quality: 80
+  download_workers: 2
+  cache_tars: false       # a 100k build would otherwise cache ~19GB of tars
+
+index:
+  type: auto              # -> flat at 100k (exact, ~200MB); pq kicks in >1M
+  auto_flat_max: 300000
+  auto_ivf_max: 1000000
+  nlist: 4096
+  nprobe: 64

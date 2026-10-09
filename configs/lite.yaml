@@ -1,0 +1,22 @@
+# Low-resource preset (weak CPU, limited RAM/disk).
+#
+# Overlays configs/default.yaml, so it only lists the keys it changes.
+# Usage:
+#   python -m tsr build --config configs/lite.yaml
+#   TSR_CONFIG=configs/lite.yaml python -m tsr serve
+model:
+  name: ViT-B-32          # smallest backbone; do not upgrade on weak hardware
+  device: cpu
+  backend: torch          # run `tsr export-onnx` then set to onnx for ~2-4x CPU speedup
+  batch_size: 8           # lower if RAM is tight
+
+gallery:
+  image_max_side: 256     # CLIP uses 224px input; 256 keeps disk/CPU cost low
+  image_quality: 80
+  download_workers: 2
+  cache_tars: false       # skip the ~GB tar cache; re-download only if needed
+
+index:
+  type: auto              # flat at <=300k vectors (exact, ~200MB for 100k)
+  auto_flat_max: 300000
+  auto_ivf_max: 1000000

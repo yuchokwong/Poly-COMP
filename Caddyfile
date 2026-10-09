@@ -1,0 +1,23 @@
+# Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
+#
+# The DOMAIN variable is provided by docker-compose (see .env). Caddy obtains and
+# renews the TLS certificate automatically as long as DNS points here and ports
+# 80/443 are reachable from the internet.
+{$DOMAIN} {
+	encode gzip zstd
+
+	# Forward everything to the FastAPI app on the internal compose network.
+	reverse_proxy app:8000
+
+	# Basic security headers.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	log {
+		output file /data/access.log
+	}
+}

@@ -1,0 +1,14 @@
+.git
+.gitignore
+__pycache__
+*.py[cod]
+*.egg-info
+.venv
+venv
+data
+.cache
+.env
+.pytest_cache
+.ruff_cache
+tests
+eval/queries.json

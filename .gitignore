@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Runtime data (gallery, index, db, cache) - never commit
+data/
+.cache/
+
+# Local config / secrets
+.env
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Generated eval set (keep eval/queries.example.json instead)
+eval/queries.json

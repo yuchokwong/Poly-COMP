@@ -1,0 +1,50 @@
+# Production deployment: app + Caddy (automatic HTTPS for your domain).
+#
+#   1. Put DOMAIN=your.domain and ACME_EMAIL=you@example.com in .env
+#   2. Point the domain's DNS A record at this server's public IP
+#   3. Open ports 80 and 443 in the firewall
+#   4. docker compose -f docker-compose.prod.yml up -d --build
+#
+# The app is NOT published to the host; only Caddy (80/443) is reachable.
+services:
+  app:
+    build:
+      context: .
+      args:
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+    image: tsr:local
+    container_name: tsr-app
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PYTHONPATH: /app/src
+      TSR_MODEL__CACHE_DIR: /root/.cache/open_clip
+    expose:
+      - "8000"
+    volumes:
+      - ./data:/app/data
+      - openclip_cache:/root/.cache
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: tsr-caddy
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env (e.g. search.example.com)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  openclip_cache:
+  caddy_data:
+  caddy_config:

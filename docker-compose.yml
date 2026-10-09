@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+    image: tsr:local
+    container_name: tsr-app
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PYTHONPATH: /app/src
+      TSR_MODEL__CACHE_DIR: /root/.cache/open_clip
+    ports:
+      - "${TSR_APP__PORT:-8000}:8000"
+    volumes:
+      # Persistent gallery, index, database and model cache.
+      - ./data:/app/data
+      - openclip_cache:/root/.cache
+    restart: unless-stopped
+
+  # One-shot tool for building the gallery + index:
+  #   docker compose run --rm build python -m tsr build --max-images 10000
+  build:
+    profiles: ["tools"]
+    build:
+      context: .
+      args:
+        TORCH_INDEX_URL: ${TORCH_INDEX_URL:-https://download.pytorch.org/whl/cpu}
+    image: tsr:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PYTHONPATH: /app/src
+      TSR_MODEL__CACHE_DIR: /root/.cache/open_clip
+    volumes:
+      - ./data:/app/data
+      - openclip_cache:/root/.cache
+    entrypoint: ["python", "-m", "tsr"]
+
+volumes:
+  openclip_cache:
