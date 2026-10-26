@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 860" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#64748b"/>
+    </marker>
+    <marker id="arwb" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arwg" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 z" fill="#059669"/>
+    </marker>
+    <marker id="arwd" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 z" fill="#d97706"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="860" fill="#ffffff"/>
+  <text x="590" y="36" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">Text-to-Image Retrieval &#8212; System Architecture</text>
+  <text x="590" y="58" text-anchor="middle" font-size="12.5" fill="#64748b">OpenCLIP (ViT-B-32) &#183; FAISS cosine search &#183; SQLite + FTS5 (BM25) &#183; FastAPI web UI</text>
+
+  <!-- ================= OFFLINE PANEL ================= -->
+  <rect x="35" y="72" width="500" height="492" rx="14" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="60" y="96" font-size="15" font-weight="700" fill="#1e40af">OFFLINE BUILD</text>
+  <text x="60" y="114" font-size="11.5" fill="#64748b">CLI:  python -m tsr build   (source + gallery.py + pipeline.build_index)</text>
+
+  <!-- left boxes -->
+  <g>
+    <rect x="60" y="126" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="150" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">1. Data source</text>
+    <text x="285" y="169" text-anchor="middle" font-size="11" fill="#334155">MS-COCO 2017 &#183; coco_hf webdataset &#183; local images</text>
+
+    <rect x="60" y="202" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="226" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">2. gallery.py &#8212; collect + normalise</text>
+    <text x="285" y="245" text-anchor="middle" font-size="11" fill="#334155">download &#183; resize (max side 256px) &#183; dedup (sha1 / phash) &#183; manifest.jsonl</text>
+
+    <rect x="60" y="278" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="302" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">3. OpenCLIP image encoder</text>
+    <text x="285" y="321" text-anchor="middle" font-size="11" fill="#334155">ViT-B-32 / laion2b  &#8594;  50,000 &#215; 512-d L2-normalised embeddings</text>
+
+    <rect x="60" y="354" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="378" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">4. index.py &#8212; build FAISS index</text>
+    <text x="285" y="397" text-anchor="middle" font-size="11" fill="#334155">vectors stored unnormalised-input, IP search = cosine &#183; flat / ivf / hnsw</text>
+
+    <rect x="60" y="430" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="454" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">5. db.py &#8212; SQLite metadata</text>
+    <text x="285" y="473" text-anchor="middle" font-size="11" fill="#334155">images table (caption, split, path) + FTS5 virtual table for BM25</text>
+
+    <rect x="60" y="506" width="450" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="285" y="530" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1e3a8a">6. make-eval</text>
+    <text x="285" y="549" text-anchor="middle" font-size="11" fill="#334155">sample captions &#8594; eval_queries.json (ground-truth image per query)</text>
+  </g>
+
+  <line x1="285" y1="182" x2="285" y2="202" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arwb)"/>
+  <line x1="285" y1="258" x2="285" y2="278" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arwb)"/>
+  <line x1="285" y1="334" x2="285" y2="354" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arwb)"/>
+  <line x1="285" y1="410" x2="285" y2="430" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arwb)"/>
+  <line x1="285" y1="486" x2="285" y2="506" stroke="#2563eb" stroke-width="1.6" marker-end="url(#arwb)"/>
+
+  <!-- ================= ONLINE PANEL ================= -->
+  <rect x="645" y="72" width="500" height="578" rx="14" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="670" y="96" font-size="15" font-weight="700" fill="#047857">ONLINE SEARCH</text>
+  <text x="670" y="114" font-size="11.5" fill="#64748b">FastAPI (api.py) + web UI &#183; per-query latency target &lt; 100 ms</text>
+
+  <g>
+    <rect x="670" y="126" width="450" height="56" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="895" y="150" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f46">1. Web UI (web/)</text>
+    <text x="895" y="169" text-anchor="middle" font-size="11" fill="#334155">type query &#8594; GET /api/search?q=...&amp;k=12&amp;hybrid=true</text>
+
+    <rect x="670" y="202" width="450" height="56" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-dasharray="5 3"/>
+    <text x="895" y="226" text-anchor="middle" font-size="13.5" font-weight="700" fill="#5b21b6">2. Translate (optional)</text>
+    <text x="895" y="245" text-anchor="middle" font-size="11" fill="#334155">CJK &#8594; English (opus-mt-zh-en), only when query has CJK</text>
+
+    <rect x="670" y="278" width="450" height="56" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-dasharray="5 3"/>
+    <text x="895" y="302" text-anchor="middle" font-size="13.5" font-weight="700" fill="#5b21b6">3. Prompt ensemble (optional)</text>
+    <text x="895" y="321" text-anchor="middle" font-size="11" fill="#334155">average embedding over prompt_templates ("a photo of {}" ...)</text>
+
+    <rect x="670" y="354" width="450" height="56" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="895" y="378" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f46">4. OpenCLIP text encoder</text>
+    <text x="895" y="397" text-anchor="middle" font-size="11" fill="#334155">query &#8594; 512-d vector in the SAME space as the images</text>
+
+    <rect x="670" y="430" width="450" height="56" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="895" y="454" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f46">5. Retrieval + score fusion</text>
+    <text x="895" y="473" text-anchor="middle" font-size="11" fill="#334155">FAISS cosine (over-fetch k&#215;3)  &#8853;  FTS5 BM25, weight alpha</text>
+
+    <rect x="670" y="506" width="450" height="56" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-dasharray="5 3"/>
+    <text x="895" y="530" text-anchor="middle" font-size="13.5" font-weight="700" fill="#5b21b6">6. Rerank (optional)</text>
+    <text x="895" y="549" text-anchor="middle" font-size="11" fill="#334155">caption CLIP match or cross-encoder, blended by rerank_alpha</text>
+
+    <rect x="670" y="582" width="450" height="56" rx="10" fill="#ecfdf5" stroke="#6ee7b7"/>
+    <text x="895" y="606" text-anchor="middle" font-size="13.5" font-weight="700" fill="#065f46">7. Ranked top-K &#8594; JSON</text>
+    <text x="895" y="625" text-anchor="middle" font-size="11" fill="#334155">score &#183; captions &#183; /api/thumbnail/{id} &#8594; responsive result grid</text>
+  </g>
+
+  <line x1="895" y1="182" x2="895" y2="202" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+  <line x1="895" y1="258" x2="895" y2="278" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+  <line x1="895" y1="334" x2="895" y2="354" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+  <line x1="895" y1="410" x2="895" y2="430" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+  <line x1="895" y1="486" x2="895" y2="506" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+  <line x1="895" y1="562" x2="895" y2="582" stroke="#059669" stroke-width="1.6" marker-end="url(#arwg)"/>
+
+  <!-- ================= STORAGE ================= -->
+  <rect x="35" y="676" width="1110" height="132" rx="12" fill="#fffbeb" stroke="#fcd34d"/>
+  <text x="60" y="702" font-size="14" font-weight="700" fill="#92400e">data/  &#8212;  persisted artifacts  (Docker volume ./data, shipped to the VPS; git-ignored)</text>
+  <rect x="55" y="714" width="330" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="70" y="736" font-size="11.5" fill="#78350f">images/  &#183;  50,000 JPEG  (630 MB)</text>
+  <rect x="400" y="714" width="330" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="415" y="736" font-size="11.5" fill="#78350f">index.faiss  (102 MB)  +  index_ids.npy</text>
+  <rect x="745" y="714" width="385" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="760" y="736" font-size="11.5" fill="#78350f">gallery.db  &#183;  SQLite + FTS5  (45 MB)</text>
+  <rect x="55" y="754" width="330" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="70" y="776" font-size="11.5" fill="#78350f">manifest.jsonl  (27 MB)</text>
+  <rect x="400" y="754" width="330" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="415" y="776" font-size="11.5" fill="#78350f">settings.json  &#183;  runtime overrides</text>
+  <rect x="745" y="754" width="385" height="34" rx="7" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="760" y="776" font-size="11.5" fill="#78350f">eval_queries.json  &#183;  .cache/thumbs/ (thumbnails)</text>
+
+  <!-- build -> storage -->
+  <line x1="285" y1="562" x2="285" y2="676" stroke="#d97706" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arwd)"/>
+  <text x="298" y="612" font-size="11" fill="#92400e">writes  index.faiss  &#183;  index_ids.npy  &#183;</text>
+  <text x="298" y="628" font-size="11" fill="#92400e">gallery.db  &#183;  manifest.jsonl  &#183;  eval set</text>
+
+  <!-- storage -> search -->
+  <polyline points="1145,712 1162,712 1162,458 1120,458" fill="none" stroke="#d97706" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arwd)"/>
+  <text x="1155" y="600" font-size="11" fill="#92400e" text-anchor="end">reads index + FTS5</text>
+
+  <!-- shared model note -->
+  <line x1="510" y1="306" x2="670" y2="382" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#arw)"/>
+  <text x="590" y="352" text-anchor="middle" font-size="10.5" fill="#475569">shared OpenCLIP weights</text>
+  <text x="590" y="366" text-anchor="middle" font-size="10.5" fill="#475569">(cached: openclip_cache volume)</text>
+
+  <!-- footer -->
+  <text x="35" y="842" font-size="11" fill="#64748b">Legend:  solid = processing step   &#183;   dashed amber = read/write persisted file   &#183;   dashed purple = optional stage.   Runtime config = default.yaml &lt; $TSR_CONFIG &lt; TSR_* env &lt; data/settings.json (via /api/settings).</text>
+</svg>

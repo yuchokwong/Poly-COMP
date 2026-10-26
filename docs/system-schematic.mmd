@@ -1,0 +1,43 @@
+flowchart TB
+  subgraph BUILD["OFFLINE BUILD — python -m tsr build"]
+    direction TB
+    A1["1. Data source<br/>MS-COCO 2017 · coco_hf webdataset · local"]
+    A2["2. gallery.py<br/>download · resize ≤256px · dedup (sha1/phash)"]
+    A3["3. OpenCLIP image encoder<br/>ViT-B-32 laion2b → 50k × 512-d"]
+    A4["4. index.py — FAISS build<br/>L2-normalised ⇒ IP = cosine"]
+    A5["5. db.py — SQLite + FTS5<br/>metadata + BM25 index"]
+    A6["6. make-eval<br/>eval_queries.json"]
+    A1 --> A2 --> A3 --> A4 --> A5 --> A6
+  end
+
+  subgraph ONLINE["ONLINE SEARCH — FastAPI + Web UI"]
+    direction TB
+    B1["1. Web UI<br/>GET /api/search?q=&k=&hybrid="]
+    B2["2. Translate (optional)<br/>CJK → EN"]
+    B3["3. Prompt ensemble (optional)"]
+    B4["4. OpenCLIP text encoder<br/>query → 512-d vector"]
+    B5["5. Retrieval + fusion<br/>FAISS cosine ⊕ FTS5 BM25 (alpha)"]
+    B6["6. Rerank (optional)<br/>caption / cross-encoder"]
+    B7["7. Ranked top-K → JSON<br/>scores · captions · thumbnails"]
+    B1 --> B2 --> B3 --> B4 --> B5 --> B6 --> B7
+  end
+
+  subgraph DATA["data/ — persisted artifacts (Docker volume, git-ignored)"]
+    direction LR
+    D1["images/ (630 MB)"]
+    D2["index.faiss + index_ids.npy"]
+    D3["gallery.db (SQLite + FTS5)"]
+    D4["manifest.jsonl"]
+    D5["settings.json"]
+  end
+
+  A4 --> D2
+  A5 --> D3
+  A2 --> D4
+  A6 --> D5
+  D2 --> B5
+  D3 --> B5
+
+  MODEL["OpenCLIP weights<br/>cached in openclip_cache volume (~1.5 GB)"]
+  A3 -.-> MODEL
+  B4 -.-> MODEL

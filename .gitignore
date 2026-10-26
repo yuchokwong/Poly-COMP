@@ -19,3 +19,6 @@ data/
 
 # Generated eval set (keep eval/queries.example.json instead)
 eval/queries.json
+
+# Large data archives
+data_upload.tar
