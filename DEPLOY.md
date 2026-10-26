@@ -27,7 +27,7 @@ Stop-Process -Id (Get-Content data\serve.pid) -Force
 Copy to the server (from Windows):
 
 ```powershell
-scp -r C:\Users\YCK\Desktop\COMP <user>@<SERVER_IP>:~/beyond-vision
+scp -r <path\to\project> <user>@<SERVER_IP>:~/beyond-vision
 ```
 
 Do **not** copy `data/.cache/coco_hf_raw` or `data/.cache/coco_hf_tars` - they are

@@ -20,6 +20,13 @@ query ──► OpenCLIP text encoder ──► FAISS cosine search ──► ra
 - **Hybrid retrieval** – optional fusion of dense CLIP scores with SQLite FTS5 BM25
   keyword scores (`hybrid_alpha`).
 - **Prompt templates / query expansion** – optional prompt ensembling for text queries.
+- **Optional reranking** – caption-overlap or cross-encoder reranking of the top-N
+  candidates (`search.rerank`).
+- **CJK query translation** – optional MarianMT zh→en translation before encoding
+  (`search.translate`).
+- **Runtime settings** – `/api/settings` and a UI panel to tune top-k, hybrid weight and
+  reranking without editing config files.
+- **CPU-friendly option** – ONNX export (`tsr export-onnx`) for faster CPU inference.
 - **Metadata store** – SQLite (`gallery.db`) with captions, splits and an FTS5 index.
 - **Web UI** – clean, responsive interface to type queries and browse ranked results
   with scores, captions and a lightbox.
@@ -59,7 +66,7 @@ docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 ## Native installation
 
 Works with Python 3.10–3.14 where PyTorch/OpenCLIP wheels are available (verified on
-this machine with Python 3.14 + torch 2.11). If your platform lacks wheels, use Docker.
+Windows with Python 3.14 + torch 2.11). If your platform lacks wheels, use Docker.
 
 ```bash
 python -m venv .venv && . .venv/Scripts/activate     # Windows
@@ -80,6 +87,11 @@ python -m tsr serve
 | `tsr eval` | Evaluate retrieval (P@K, R@K, mAP, MRR) and write `eval_report.json` |
 | `tsr serve` | Run the FastAPI web server |
 | `tsr stats` | Print gallery/index statistics |
+| `tsr thumbnails` | Pre-generate cached thumbnails |
+| `tsr export-onnx` | Export the CLIP model to ONNX (fast CPU) |
+| `tsr caption` | Generate captions for local images (BLIP) |
+| `tsr compare` | Compare search configs with bootstrap CIs |
+| `tsr clean` | Delete caches (optionally all generated data) |
 
 Useful flags: `--max-images`, `--source coco|coco_hf|local`, `--config`, `--hybrid`,
 `--queries`, `--top-k`, `--log-level`.
@@ -89,7 +101,7 @@ Useful flags: `--max-images`, `--source coco|coco_hf|local`, `--config`, `--hybr
 The default source is **MS-COCO 2017** (captions + images), which suits a general
 domain and provides human captions that double as ground truth. Only the annotation
 archive is downloaded in full; images are fetched individually and resized to
-`image_max_side` (default 512 px) at JPEG quality 85, keeping the whole gallery under
+`image_max_side` (default 256 px) at JPEG quality 85, keeping the whole gallery under
 2 GB.
 
 The official COCO image server is often very slow. For a much faster download use the
@@ -136,6 +148,8 @@ per-split breakdowns for failure analysis. Metrics: `Precision@K`, `Recall@K`,
 | `GET /api/image/{id}` | Full image file |
 | `GET /api/thumbnail/{id}?size=256` | Cached thumbnail (fast grid loading) |
 | `GET /api/random?n=12` | Random gallery sample |
+| `GET /api/settings` | Current runtime settings |
+| `PUT /api/settings` | Update runtime settings |
 | `GET /api/stats` | Gallery/model/index info |
 | `GET /api/health` | Health probe |
 
@@ -153,24 +167,38 @@ Swapping to a stronger backbone is a one-line change, e.g.
 `TSR_MODEL__NAME=ViT-L-14 TSR_MODEL__PRETRAINED=laion2b_s32b_b82k` (rebuild the index
 afterwards).
 
+## Documentation
+
+- [`docs/report.html`](docs/report.html) – project report (download and open locally;
+  GitHub shows raw HTML)
+- [`docs/system-schematic.pdf`](docs/system-schematic.pdf) – end-to-end pipeline diagram
+- [`docs/system-overview.svg`](docs/system-overview.svg) – high-level architecture
+- [`DEPLOY.md`](DEPLOY.md) – deployment guide (direct IP or domain + HTTPS)
+
 ## Project layout
 
 ```
-configs/default.yaml     configuration defaults
+configs/                 configuration defaults (default / lite / scale100k)
 src/tsr/                 Python package
   config.py              config loading + path helpers
-  embedder.py            OpenCLIP wrapper
+  embedder.py            OpenCLIP wrapper (torch / ONNX)
   index.py               FAISS vector index
   db.py                  SQLite metadata + FTS5
   sources.py             COCO / local gallery sources
   gallery.py             download + resize + manifest
+  captioning.py          optional caption generation for local images
+  rerank.py              caption-overlap / cross-encoder reranking
+  translate.py           optional CJK query translation
   evaluate.py            retrieval metrics
   pipeline.py            build-index / eval pipelines
+  settings.py            runtime-editable settings
   api.py                 FastAPI app + retrieval service
   cli.py                 command-line interface
+  onnx_export.py         ONNX export for CPU inference
 web/                     web UI (HTML/CSS/JS)
 eval/                    example evaluation queries
 tests/                   unit tests
+docs/                    report and architecture diagrams
 data/                    runtime artifacts (gitignored)
 ```
 
@@ -184,6 +212,7 @@ ruff check src tests
 
 ## Deployment notes
 
+- See [`DEPLOY.md`](DEPLOY.md) for step-by-step deployment (direct IP or domain + HTTPS).
 - Build the data once (`data/` volume) and ship it with the image or mount it on the
   target host.
 - Scale-up path: keep SQLite/FAISS for ≤ ~1M vectors, or swap `index.py`/`db.py` for
