@@ -51,6 +51,7 @@ cd Poly-COMP
 curl -L -o data_upload.tar \
   https://github.com/yuchokwong/Poly-COMP/releases/latest/download/data_upload.tar
 tar -xf data_upload.tar -C .        # Windows 10+ and Linux/macOS
+rm data_upload.tar                  # optional; keeps the Docker build context small
 
 # Optional: configure
 cp .env.example .env

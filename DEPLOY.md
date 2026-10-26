@@ -21,6 +21,7 @@ cd Poly-COMP
 curl -L -o data_upload.tar \
   https://github.com/yuchokwong/Poly-COMP/releases/latest/download/data_upload.tar
 tar -xf data_upload.tar -C .
+rm data_upload.tar        # optional; keeps the Docker build context small
 ```
 
 This creates `./data` with:
