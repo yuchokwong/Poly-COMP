@@ -2,7 +2,7 @@
 
 A general-domain **text-to-image retrieval** system built with **OpenCLIP**, **FAISS**
 and a **FastAPI web UI**. Type a natural-language query and get a ranked list of the
-most relevant images from a gallery of ~10,000 images.
+most relevant images from a gallery of 50,000 images.
 
 ```
 query ──► OpenCLIP text encoder ──► FAISS cosine search ──► ranked images (+captions)
@@ -38,28 +38,52 @@ query ──► OpenCLIP text encoder ──► FAISS cosine search ──► ra
 ## Quick start (Docker, recommended)
 
 Docker gives a reproducible environment for deployment (Python 3.11) regardless of the
-host Python version.
+host Python version. The source lives on GitHub; the prebuilt 50k gallery is published
+as a GitHub Release asset.
+
+### Option A - prebuilt 50k gallery (fastest)
 
 ```bash
-# 1. configure
+git clone https://github.com/yuchokwong/Poly-COMP.git
+cd Poly-COMP
+
+# Download and extract data/ (~850 MB archive, ~800 MB extracted)
+curl -L -o data_upload.tar \
+  https://github.com/yuchokwong/Poly-COMP/releases/latest/download/data_upload.tar
+tar -xf data_upload.tar -C .        # Windows 10+ and Linux/macOS
+
+# Optional: configure
+cp .env.example .env
+
+docker compose up -d --build
+# open http://localhost:8000
+```
+
+`data/` already contains 50,000 COCO images, the FAISS index, SQLite metadata
+(`gallery.db`), the manifest and the 200-query evaluation set, so the server does not
+rebuild anything. The first search downloads the OpenCLIP weights (~577 MB) into the
+`openclip_cache` volume; later starts are fast.
+
+### Option B - build the gallery from scratch
+
+```bash
 cp .env.example .env          # optional; edit as needed
 
-# 2. build the gallery (~10k images) and the index (downloads ~1.5 GB once)
-docker compose --profile tools run --rm build python -m tsr build --max-images 10000
+# Download COCO and embed 50k images (downloads ~1.5 GB once)
+docker compose --profile tools run --rm build python -m tsr build --max-images 50000
 
-# 3. run the web server
 docker compose up -d
 # open http://localhost:8000
 ```
 
-The first search loads the OpenCLIP weights into the `openclip_cache` volume, so later
-starts are fast. All gallery/index artifacts live in `./data` on the host.
+All gallery/index artifacts live in `./data` on the host, so they persist across
+container restarts and can be copied to another machine.
 
 ### GPU
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile tools \
-  run --rm build python -m tsr build
+  run --rm build python -m tsr build --max-images 50000
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 ```
 
@@ -72,7 +96,10 @@ Windows with Python 3.14 + torch 2.11). If your platform lacks wheels, use Docke
 python -m venv .venv && . .venv/Scripts/activate     # Windows
 pip install -r requirements-dev.txt
 pip install -e .
-python -m tsr build --max-images 10000
+
+# Either extract the prebuilt release data (see Quick start, Option A)
+# or build the 50k gallery from COCO:
+python -m tsr build --max-images 50000
 python -m tsr serve
 ```
 
@@ -99,16 +126,15 @@ Useful flags: `--max-images`, `--source coco|coco_hf|local`, `--config`, `--hybr
 ## Data
 
 The default source is **MS-COCO 2017** (captions + images), which suits a general
-domain and provides human captions that double as ground truth. Only the annotation
-archive is downloaded in full; images are fetched individually and resized to
-`image_max_side` (default 256 px) at JPEG quality 85, keeping the whole gallery under
-2 GB.
+domain and provides human captions that double as ground truth. The published release
+uses 50,000 images (45k train / 5k val), resized to `image_max_side` (default 256 px)
+at JPEG quality 85, keeping the whole gallery under 2 GB.
 
 The official COCO image server is often very slow. For a much faster download use the
 HuggingFace webdataset mirror:
 
 ```bash
-python -m tsr download --source coco_hf --max-images 10000
+python -m tsr download --source coco_hf --max-images 50000
 ```
 
 `coco_hf` streams COCO (Karpathy split) tars from
@@ -213,8 +239,8 @@ ruff check src tests
 ## Deployment notes
 
 - See [`DEPLOY.md`](DEPLOY.md) for step-by-step deployment (direct IP or domain + HTTPS).
-- Build the data once (`data/` volume) and ship it with the image or mount it on the
-  target host.
+- Download `data_upload.tar` from the [latest release](https://github.com/yuchokwong/Poly-COMP/releases/latest)
+  (50k prebuilt gallery) or build `data/` once and ship it with the project.
 - Scale-up path: keep SQLite/FAISS for ≤ ~1M vectors, or swap `index.py`/`db.py` for
   Qdrant/pgvector and object storage (S3/MinIO) without touching the API/UI.
 - Set `TSR_APP__CORS_ORIGINS` and a reverse proxy (nginx/Caddy) for production.

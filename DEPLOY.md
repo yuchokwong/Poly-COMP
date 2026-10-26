@@ -1,37 +1,70 @@
-# Deploying Beyond Vision
+# Deploying Text-to-Image Retrieval (COMP5523)
 
 Two ways to expose the app. Pick one:
 
 - **A. Direct IP (no domain)** - fastest, `http://<SERVER_IP>:8000`.
 - **B. Domain + HTTPS** - nicer and secure, requires DNS + ports 80/443.
 
-In both cases you ship the project together with the prebuilt `data/` directory
-(the gallery, FAISS index and SQLite DB), so the server does **not** rebuild.
+In both cases you need the project source and the prebuilt `data/` directory
+(50k gallery, FAISS index and SQLite DB). The data is published as a GitHub Release
+asset, so the server does **not** rebuild anything.
 
 ---
 
-## What to copy
+## 1. Get the project and the data
 
-| Path | Size | Needed |
+```bash
+git clone https://github.com/yuchokwong/Poly-COMP.git
+cd Poly-COMP
+
+# Download and extract data/ (~850 MB archive, ~800 MB extracted)
+curl -L -o data_upload.tar \
+  https://github.com/yuchokwong/Poly-COMP/releases/latest/download/data_upload.tar
+tar -xf data_upload.tar -C .
+```
+
+This creates `./data` with:
+
+| Path | Size | Notes |
 | --- | --- | --- |
-| project source | small | always |
-| `data/` | ~570 MB | always (avoids a 1-2 h rebuild) |
-| `.cache/open_clip/` | ~600 MB | optional (skip the model download) |
+| `data/images/` | ~630 MB | 50,000 COCO images (45k train / 5k val) |
+| `data/gallery.db` | ~43 MB | SQLite metadata, captions and FTS5 index |
+| `data/index.faiss` + `data/index_ids.npy` | ~98 MB | 50k CLIP embeddings |
+| `data/manifest.jsonl` | ~26 MB | image metadata |
+| `data/eval_queries.json` | small | 200 evaluation queries |
 
-Stop the server on your machine first so SQLite is flushed:
+Verify the key artifacts are present:
+
+```bash
+ls -lh data/index.faiss data/gallery.db data/images
+```
+
+The first search downloads the OpenCLIP weights (~577 MB) automatically. You do
+**not** need to ship `.cache/open_clip`; to skip the download, pre-populate the
+`openclip_cache` Docker volume yourself.
+
+### Alternative - copy an existing local `data/`
+
+If you already built the data on your machine, stop the server first (so SQLite is
+flushed), then copy the project:
 
 ```powershell
 Stop-Process -Id (Get-Content data\serve.pid) -Force
-```
-
-Copy to the server (from Windows):
-
-```powershell
-scp -r <path\to\project> <user>@<SERVER_IP>:~/beyond-vision
+scp -r <path\to\project> <user>@<SERVER_IP>:~/Poly-COMP
 ```
 
 Do **not** copy `data/.cache/coco_hf_raw` or `data/.cache/coco_hf_tars` - they are
 disposable and only slow the transfer down.
+
+### Alternative - rebuild on the server
+
+Instead of downloading the archive, build the same 50k gallery on the server:
+
+```bash
+docker compose --profile tools run --rm build python -m tsr build --max-images 50000
+```
+
+This downloads COCO and recomputes the embeddings (network + ~1.5 GB, much slower).
 
 ---
 
@@ -48,7 +81,7 @@ sudo usermod -aG docker $USER && newgrp docker
 sudo ufw allow 8000/tcp
 
 # 3. Start (base compose publishes port 8000)
-cd ~/beyond-vision
+cd ~/Poly-COMP
 docker compose up -d --build
 
 # 4. Find your public IP
@@ -83,7 +116,7 @@ to `.env`, `sudo ufw allow 80/tcp`, then `docker compose up -d`.
 3. Configure and start:
 
 ```bash
-cd ~/beyond-vision
+cd ~/Poly-COMP
 cp .env.example .env
 # edit .env -> DOMAIN=search.example.com  and  ACME_EMAIL=you@example.com
 docker compose -f docker-compose.prod.yml up -d --build
@@ -101,10 +134,13 @@ exposed on the internal network (`expose: 8000`), never directly.
 ## Updating the app
 
 ```bash
-cd ~/beyond-vision
-# bring the new source over (git pull / scp)
-docker compose up -d --build                 # or -f docker-compose.prod.yml
+cd ~/Poly-COMP
+git pull                                   # data/ is gitignored and stays in place
+docker compose up -d --build               # or -f docker-compose.prod.yml
 ```
+
+Re-download `data_upload.tar` only when a release explicitly updates the gallery or
+index; the old `data/` is otherwise reused.
 
 ## Operations
 
@@ -119,7 +155,7 @@ docker compose down            # stop (data/ on the host is untouched)
 
 ```bash
 sudo apt update && sudo apt install -y python3 python3-venv python3-pip
-cd ~/beyond-vision
+cd ~/Poly-COMP
 python3 -m venv .venv && source .venv/bin/activate
 pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU-only
 pip install -r requirements.txt && pip install -e .
